@@ -3,51 +3,45 @@ import org.gradle.internal.os.OperatingSystem
 apply plugin: 'maven-publish'
 apply plugin: 'edu.wpi.first.wpilib.versioning.WPILibVersioningPlugin'
 
-def utilVersion = "1.0.1${-> WPILibVersion.version.substring(WPILibVersion.version.indexOf('-'))}"
-def utilFile = file("$buildDir/wpiutil.txt")
 def ntcoreFile = file("$buildDir/ntcore.txt")
 
 task outputVersions() {
-    description = 'Prints the versions of ntcore and wpiutil to a file for use by the downstream packaging project'
+    description = 'Prints the version of ntcore to a file for use by the downstream packaging project'
     group = 'Build'
-    outputs.files(utilFile, ntcoreFile)
+    outputs.files(ntcoreFile)
 
     doFirst {
         buildDir.mkdir()
     }
 
     doLast {
-        utilFile.write utilVersion
         ntcoreFile.write WPILibVersion.version
     }
 }
 
 task clean(type: Delete) {
-    delete utilFile
     delete ntcoreFile
 }
 
 outputVersions.mustRunAfter clean
 
-project(':native:wpiutil').build.dependsOn outputVersions
-project(':native:ntcore').build.dependsOn outputVersions
+project(':native').build.dependsOn outputVersions
 if (project.buildArm) {
-    project(':arm:wpiutil').build.dependsOn outputVersions
-    project(':arm:ntcore').build.dependsOn outputVersions
+    project(':arm').build.dependsOn outputVersions
 }
 
 // We change what repo we publish to depending on whether this is a development, beta, stable, or full
 // release. This is set up in the main gradle file.
 publishing {
     publications {
-        def nat = project('native:ntcore')
+        def nat = project('native')
         if (!project.hasProperty('skipJava')) {
             java(MavenPublication) {
                 artifact nat.jar
                 artifact nat.networktablesJavaSource
                 artifact nat.networktablesJavadoc
                 if (project.buildArm) {
-                    def natArm = project('arm:ntcore')
+                    def natArm = project(':arm')
                     artifact natArm.jar
                     // If the library is not embedded include it in the repo
                     if (!project.hasProperty('compilerPrefix')) {
@@ -70,7 +64,7 @@ publishing {
             artifact nat.ntcoreZip
             artifact ntcoreSourceZip
             if (project.buildArm) {
-                artifact project(':arm:ntcore').ntcoreZip
+                artifact project(':arm').ntcoreZip
             }
 
             if (project.hasProperty('makeDesktop')) {
@@ -82,23 +76,6 @@ publishing {
             groupId 'edu.wpi.first.wpilib.networktables.cpp'
             artifactId 'NetworkTables'
             version WPILibVersion.version
-        }
-        wpiutil(MavenPublication) {
-            artifact project(':native:wpiutil').wpiutilZip
-            artifact wpiutilSourceZip
-            if (project.buildArm) {
-                artifact project(':arm:wpiutil').wpiutilZip
-            }
-
-            if (project.hasProperty('makeDesktop')) {
-                artifact project(':native:wpiutil').wpiutilZip, {
-                    classifier = 'desktop'
-                }
-            }
-
-            groupId 'edu.wpi.first.wpilib'
-            artifactId 'wpiutil'
-            version utilVersion
         }
     }
 }

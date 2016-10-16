@@ -31,21 +31,13 @@ def ntcoreSetupModel = { project ->
                             includes = ['**/*.cpp']
                         }
                         exportedHeaders {
-                            srcDirs = ["${rootDir}/include"]
+                            srcDirs = ["${rootDir}/include", project.wpiUtilInclude]
                             if (includeJava) {
                                 project.jniHeadersNetworkTables.outputs.files.each { file ->
                                     srcDirs file.getPath()
                                 }
                             }
                             includes = ['**/*.h']
-                        }
-                        if (project.isArm && project.hasProperty('compilerPrefix')) {
-                            lib project: ':arm:wpiutil', library: 'wpiutil', linkage: 'static'
-                        } else if (project.isArm) {
-                            // If roboRIO, link shared
-                            lib project: ':arm:wpiutil', library: 'wpiutil', linkage: 'shared'
-                        } else {
-                            lib project: ':native:wpiutil', library: 'wpiutil', linkage: 'static'
                         }
                     }
                 }
@@ -107,7 +99,7 @@ def ntcoreZipTask = { project ->
 }
 
 if (buildArm) {
-    project(':arm:ntcore') {
+    project(':arm') {
         apply plugin: 'cpp'
 
         apply from: "${rootDir}/toolchains/arm.gradle"
@@ -117,10 +109,11 @@ if (buildArm) {
 
         ntcoreSetupModel(project)
         ntcoreZipTask(project)
+        useWpiUtil(project)
     }
 }
 
-project(':native:ntcore') {
+project(':native') {
     apply plugin: 'cpp'
 
     apply from: "${rootDir}/toolchains/native.gradle"
@@ -135,6 +128,7 @@ project(':native:ntcore') {
 
     ntcoreSetupModel(project)
     ntcoreZipTask(project)
+    useWpiUtil(project)
 }
 
 task ntcoreSourceZip(type: Zip) {
@@ -158,7 +152,7 @@ task ntcoreSourceZip(type: Zip) {
             into 'src'
         }
 
-        project(':native:ntcore').jniHeadersNetworkTables.outputs.each {
+        project(':native').jniHeadersNetworkTables.outputs.each {
             from(it) {
                 into 'include'
             }

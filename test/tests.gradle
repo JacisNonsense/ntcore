@@ -21,6 +21,9 @@ model {
             binaries.all {
                 lib project: ':gmock', library: 'gmock', linkage: 'static'
                 lib library: 'ntcore', linkage: 'static'
+                tasks.withType(CppCompile) {
+                   project.addWpiUtilStaticLibraryLinks(it, linker, targetPlatform)
+                }
             }
         }
     }
@@ -31,6 +34,9 @@ model {
         withType(GoogleTestTestSuiteBinarySpec) {
             lib project: ':gmock', library: "gmock", linkage: "static"
             lib library: 'ntcore', linkage: 'static'
+            tasks.withType(CppCompile) {
+                project.addWpiUtilStaticLibraryLinks(it, linker, targetPlatform)
+            }
             if (targetPlatform.operatingSystem.windows) {
                 cppCompiler.args '/EHsc', '/DNOMINMAX', '/D_SCL_SECURE_NO_WARNINGS', '/D_WINSOCK_DEPRECATED_NO_WARNINGS'
             } else {
